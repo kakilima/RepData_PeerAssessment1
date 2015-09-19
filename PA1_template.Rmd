@@ -9,14 +9,15 @@ output:
 ## Loading and preprocessing the data
 Prepare R Environment & load necessary library
 ```{r}
-library(data.table)
+#library(data.table)
+library(dplyr)
 ```
 
 The source data is loaded into a data frame 'data' for futher analysis
 ```{r}
-setwd("c:/coursera")
+#setwd("c:/coursera")
 data <- read.csv("activity.csv")
-data <- data.table(data)
+#data <- data.table(data)
 ```
 
 Explore the data frame to have a feel of the data
@@ -33,18 +34,49 @@ data$date <- as.Date(data$date)
 ## What is mean total number of steps taken per day?
 Total number of steps per day
 ```{r}
-StepsPerDay <- dt[]
-print(StepsPerDay)
-hist(StepsPerDay, breaks = 7)
+StepsPerDay <- data %>% group_by(date) %>% summarise(TotalSteps=sum(steps))
+hist(StepsPerDay$TotalSteps, breaks = 10)
 ```
 
+Mean & Median Number of Steps taken
+```{r}
+mean(StepsPerDay$steps, na.rm = TRUE)
+median(StepsPerDay$steps, na.rm = TRUE)
+```
 
 ## What is the average daily activity pattern?
+Plot of Average Steps for each 5 minutes interval
+```{r}
+StepsPerInterval <- data %>% 
+                    group_by(interval) %>%
+                    summarise(AverageSteps=mean(steps,na.rm=T),TotalSteps=sum(steps,na.rm=T))
 
-
+with(StepsPerInterval,plot(interval,AverageSteps, type = 'l'))
+```
+  
+Interval with highest number of steps
+```{r}
+StepsPerInterval[which.max(StepsPerInterval$TotalSteps),1]
+```
 
 ## Imputing missing values
+Total Rows with NA
+```{r}
+sum(is.na(data$steps))
+```
+  
+Missing Values will be imputed with avarage steps of the same time interval (rounded to the nearest integer)
+```{r}
+Impute <- data %>% 
+            inner_join(StepsPerInterval,by='interval') %>%
+            mutate(NewSteps=ifelse(is.na(steps),round(AverageSteps),steps))
+```
 
+New Imputed dataset
+```{r}
+Impute <- Impute[,c(2,3,5)]
+summary(Impute)
+```
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
