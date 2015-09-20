@@ -9,15 +9,13 @@ output:
 ## Loading and preprocessing the data
 Prepare R Environment & load necessary library
 ```{r}
-#library(data.table)
+library(ggplot2)
 library(dplyr)
 ```
 
 The source data is loaded into a data frame 'data' for futher analysis
 ```{r}
-#setwd("c:/coursera")
 data <- read.csv("activity.csv")
-#data <- data.table(data)
 ```
 
 Explore the data frame to have a feel of the data
@@ -34,14 +32,17 @@ data$date <- as.Date(data$date)
 ## What is mean total number of steps taken per day?
 Total number of steps per day
 ```{r}
-StepsPerDay <- data %>% group_by(date) %>% summarise(TotalSteps=sum(steps))
-hist(StepsPerDay$TotalSteps, breaks = 10)
+StepsPerDay <- data %>% 
+                group_by(date) %>% 
+                summarise(TotalSteps=sum(steps))
+
+hist(StepsPerDay$TotalSteps, breaks = 10,xlab='Total Steps',main='Histogram of Total Steps Per Day')
 ```
 
 Mean & Median Number of Steps taken
 ```{r}
-mean(StepsPerDay$steps, na.rm = TRUE)
-median(StepsPerDay$steps, na.rm = TRUE)
+mean(StepsPerDay$TotalSteps, na.rm = TRUE)
+median(StepsPerDay$TotalSteps, na.rm = TRUE)
 ```
 
 ## What is the average daily activity pattern?
@@ -51,7 +52,7 @@ StepsPerInterval <- data %>%
                     group_by(interval) %>%
                     summarise(AverageSteps=mean(steps,na.rm=T),TotalSteps=sum(steps,na.rm=T))
 
-with(StepsPerInterval,plot(interval,AverageSteps, type = 'l'))
+with(StepsPerInterval,plot(interval,AverageSteps, type = 'l', xlab='Interval', ylab='Average Steps', main='Average Steps for 5 Minutes Interval'))
 ```
   
 Interval with highest number of steps
@@ -74,9 +75,37 @@ Impute <- data %>%
 
 New Imputed dataset
 ```{r}
-Impute <- Impute[,c(2,3,5)]
+Impute <- Impute[,c(2,3,6)]
 summary(Impute)
 ```
 
+Total Steps per day (Imputed dataset)
+```{r}
+ImputePerDay <- Impute %>% 
+                group_by(date) %>% 
+                summarise(NewTotalSteps=sum(NewSteps))
+
+hist(ImputePerDay$NewTotalSteps, breaks=10, xlab='Total Steps', main='Histogram of Total Steps Per Day (Imputed Dataset)')
+```
+
+Mean & Median Number of Steps taken (Imputed dataset)
+```{r}
+mean(ImputePerDay$NewTotalSteps, na.rm = TRUE)
+median(ImputePerDay$NewTotalSteps, na.rm = TRUE)
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+Label the dates with Weekday & Weekend
+```{r}
+Impute$Days <- weekdays(Impute$date)
+Impute$Days <- ifelse(Impute$Days=='Sunday'|Impute$Days=='Saturday','weekend','weekday')
+
+AvgImpute <- Impute %>% 
+                group_by(Days, interval) %>%
+                summarise(TotalSteps=sum(NewSteps),AvgSteps=mean(NewSteps))
+```
+
+Time Series Plot
+```{r}
+ggplot(AvgImpute, aes(interval,AvgSteps)) + geom_line() + facet_wrap(~Days,2,1) + ggtitle("Avarage Steps Taken\n(For Weekday & Weekend)")
+```

@@ -5,7 +5,7 @@
 Prepare R Environment & load necessary library
 
 ```r
-#library(data.table)
+library(ggplot2)
 library(dplyr)
 ```
 
@@ -29,9 +29,7 @@ library(dplyr)
 The source data is loaded into a data frame 'data' for futher analysis
 
 ```r
-#setwd("c:/coursera")
 data <- read.csv("activity.csv")
-#data <- data.table(data)
 ```
 
 Explore the data frame to have a feel of the data
@@ -72,8 +70,11 @@ data$date <- as.Date(data$date)
 Total number of steps per day
 
 ```r
-StepsPerDay <- data %>% group_by(date) %>% summarise(TotalSteps=sum(steps))
-hist(StepsPerDay$TotalSteps, breaks = 10)
+StepsPerDay <- data %>% 
+                group_by(date) %>% 
+                summarise(TotalSteps=sum(steps))
+
+hist(StepsPerDay$TotalSteps, breaks = 10,xlab='Total Steps',main='Histogram of Total Steps Per Day')
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-5-1.png) 
@@ -81,28 +82,19 @@ hist(StepsPerDay$TotalSteps, breaks = 10)
 Mean & Median Number of Steps taken
 
 ```r
-mean(StepsPerDay$steps, na.rm = TRUE)
+mean(StepsPerDay$TotalSteps, na.rm = TRUE)
 ```
 
 ```
-## Warning in mean.default(StepsPerDay$steps, na.rm = TRUE): argument is not
-## numeric or logical: returning NA
-```
-
-```
-## [1] NA
+## [1] 10766.19
 ```
 
 ```r
-median(StepsPerDay$steps, na.rm = TRUE)
+median(StepsPerDay$TotalSteps, na.rm = TRUE)
 ```
 
 ```
-## Warning in is.na(x): is.na() applied to non-(list or vector) of type 'NULL'
-```
-
-```
-## NULL
+## [1] 10765
 ```
 
 ## What is the average daily activity pattern?
@@ -113,7 +105,7 @@ StepsPerInterval <- data %>%
                     group_by(interval) %>%
                     summarise(AverageSteps=mean(steps,na.rm=T),TotalSteps=sum(steps,na.rm=T))
 
-with(StepsPerInterval,plot(interval,AverageSteps, type = 'l'))
+with(StepsPerInterval,plot(interval,AverageSteps, type = 'l', xlab='Interval', ylab='Average Steps', main='Average Steps for 5 Minutes Interval'))
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-7-1.png) 
@@ -153,19 +145,66 @@ Impute <- data %>%
 New Imputed dataset
 
 ```r
-Impute <- Impute[,c(2,3,5)]
+Impute <- Impute[,c(2,3,6)]
 summary(Impute)
 ```
 
 ```
-##       date               interval        TotalSteps     
-##  Min.   :2012-10-01   Min.   :   0.0   Min.   :    0.0  
-##  1st Qu.:2012-10-16   1st Qu.: 588.8   1st Qu.:  131.8  
-##  Median :2012-10-31   Median :1177.5   Median : 1808.0  
-##  Mean   :2012-10-31   Mean   :1177.5   Mean   : 1981.3  
-##  3rd Qu.:2012-11-15   3rd Qu.:1766.2   3rd Qu.: 2800.2  
-##  Max.   :2012-11-30   Max.   :2355.0   Max.   :10927.0
+##       date               interval         NewSteps     
+##  Min.   :2012-10-01   Min.   :   0.0   Min.   :  0.00  
+##  1st Qu.:2012-10-16   1st Qu.: 588.8   1st Qu.:  0.00  
+##  Median :2012-10-31   Median :1177.5   Median :  0.00  
+##  Mean   :2012-10-31   Mean   :1177.5   Mean   : 37.38  
+##  3rd Qu.:2012-11-15   3rd Qu.:1766.2   3rd Qu.: 27.00  
+##  Max.   :2012-11-30   Max.   :2355.0   Max.   :806.00
 ```
 
+Total Steps per day (Imputed dataset)
+
+```r
+ImputePerDay <- Impute %>% 
+                group_by(date) %>% 
+                summarise(NewTotalSteps=sum(NewSteps))
+
+hist(ImputePerDay$NewTotalSteps, breaks=10, xlab='Total Steps', main='Histogram of Total Steps Per Day (Imputed Dataset)')
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-12-1.png) 
+
+Mean & Median Number of Steps taken (Imputed dataset)
+
+```r
+mean(ImputePerDay$NewTotalSteps, na.rm = TRUE)
+```
+
+```
+## [1] 10765.64
+```
+
+```r
+median(ImputePerDay$NewTotalSteps, na.rm = TRUE)
+```
+
+```
+## [1] 10762
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+Label the dates with Weekday & Weekend
+
+```r
+Impute$Days <- weekdays(Impute$date)
+Impute$Days <- ifelse(Impute$Days=='Sunday'|Impute$Days=='Saturday','weekend','weekday')
+
+AvgImpute <- Impute %>% 
+                group_by(Days, interval) %>%
+                summarise(TotalSteps=sum(NewSteps),AvgSteps=mean(NewSteps))
+```
+
+Time Series Plot
+
+```r
+ggplot(AvgImpute, aes(interval,AvgSteps)) + geom_line() + facet_wrap(~Days,2,1) + ggtitle("Avarage Steps Taken\n(For Weekday & Weekend)")
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-15-1.png) 
